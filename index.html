@@ -8,9 +8,9 @@
     <style>
         body { background-color: #0a0a0a; color: #ffffff; font-family: 'Segoe UI', sans-serif; }
         .neon-yellow { color: #ffc107; text-shadow: 0 0 15px rgba(255, 193, 7, 0.6); font-weight: bold; }
-        .news-card { background-color: #111; border: 2px solid #ffc107; border-radius: 12px; transition: 0.3s; height: 100%; }
+        .news-card { background-color: #111; border: 2px solid #ffc107; border-radius: 12px; transition: 0.3s; height: 100%; overflow: hidden; }
         .news-card:hover { box-shadow: 0 0 20px rgba(255, 193, 7, 0.4); transform: translateY(-5px); }
-        .card-img-top { height: 190px; object-fit: cover; border-bottom: 1px solid #222; }
+        .card-img-top { height: 190px; object-fit: cover; border-bottom: 1px solid #222; background-color: #1a1a1a; }
         .btn-warning { background-color: #ffc107; color: #000; font-weight: bold; border: none; }
     </style>
 </head>
@@ -26,71 +26,92 @@
 
     <div id="loading" class="mb-4">
         <div class="spinner-border text-warning" role="status"></div>
-        <p class="mt-2 text-warning">Sincronizando satélites de información...</p>
+        <p class="mt-2 text-warning">Sincronizando satélites de información (NewsData API)...</p>
     </div>
 
     <div id="newsContainer" class="row row-cols-1 row-cols-md-3 g-4 text-start"></div>
 </div>
 
 <script>
-    // Datos de respaldo por si la API falla o se bloquea
+    // 🚨 PON AQUÍ TU API KEY DE NEWSDATA.IO (Debe empezar con pub_)
+    const API_KEY = "pub_c7be4f14916344a4816550862c6a635a";
+
+    // Datos de respaldo con ENLACES REALES y fotos corregidas
     const backupNews = [
-        { title: "Avance en Computación Cuántica", description: "Científicos logran estabilidad en cúbits a temperatura ambiente por primera vez.", url: "https://google.com", image: "https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=400" },
-        { title: "IA revoluciona la Medicina", description: "Nuevo modelo de IA predice enfermedades raras con un 99% de precisión.", url: "https://google.com", image: "https://images.unsplash.com/photo-1576086213369-97a306dca665?w=400" },
-        { title: "Energía de Fusión Limpia", description: "Reactor logra mantener el plasma por más de 10 minutos, marcando un récord histórico.", url: "https://google.com", image: "https://images.unsplash.com/photo-1518152006812-edab29b069ac?w=400" },
-        { title: "Misión Marte 2026", description: "La NASA confirma el hallazgo de minerales orgánicos en el cráter Jezero.", url: "https://google.com", image: "https://images.unsplash.com/photo-1614728894747-a83421e2b9c9?w=400" },
-        { title: "6G: Velocidad Extrema", description: "Pruebas iniciales de 6G alcanzan 1 Terabit por segundo en laboratorios de Asia.", url: "https://google.com", image: "https://images.unsplash.com/photo-1544197150-b99a580bb7a8?w=400" },
-        { title: "Microchips Orgánicos", description: "Desarrollan chips basados en proteínas para reducir la basura electrónica global.", url: "https://google.com", image: "https://images.unsplash.com/photo-1518770660439-4636190af475?w=400" },
-        { title: "Telescopio James Webb", description: "Nuevas imágenes revelan el nacimiento de las primeras galaxias del universo.", url: "https://google.com", image: "https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?w=400" },
-        { title: "Realidad Aumentada 2.0", description: "Lentes de contacto con AR integran navegación GPS directamente en la retina.", url: "https://google.com", image: "https://images.unsplash.com/photo-1478416272538-5f7e51dc5400?w=400" },
-        { title: "Internet Satelital Global", description: "Nueva red satelital reduce la latencia en zonas rurales a menos de 10ms.", url: "https://google.com", image: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=400" },
-        { title: "Baterías de Estado Sólido", description: "Fabricantes logran cargas completas en menos de 5 minutos para vehículos eléctricos.", url: "https://google.com", image: "https://images.unsplash.com/photo-1593941707882-a5bba14938c7?w=400" }
+        { title: "Avance en Computación Cuántica", description: "Científicos logran estabilidad en cúbits a temperatura ambiente por primera vez.", link: "https://www.xataka.com/categoria/computacion-cuantica", image_url: "https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=400" },
+        { title: "IA revoluciona la Medicina", description: "Nuevo modelo de IA predice enfermedades raras con un 99% de precisión.", link: "https://es.wired.com/categoria/ciencia", image_url: "https://images.unsplash.com/photo-1576086213369-97a306dca665?w=400" },
+        { title: "Energía de Fusión Limpia", description: "Reactor logra mantener el plasma por más de 10 minutos, marcando un récord histórico.", link: "https://www.nationalgeographic.com.es/ciencia", image_url: "https://images.unsplash.com/photo-1518152006812-edab29b069ac?w=400" },
+        { title: "Misión Marte 2026", description: "La NASA confirma el hallazgo de minerales orgánicos en el cráter Jezero.", link: "https://www.nasa.gov/es/", image_url: "https://images.unsplash.com/photo-1614728894747-a83421e2b9c9?w=400" },
+        { title: "6G: Velocidad Extrema", description: "Pruebas iniciales de 6G alcanzan 1 Terabit por segundo en laboratorios de Asia.", link: "https://www.xataka.com/categoria/telecomunicaciones", image_url: "https://images.unsplash.com/photo-1544197150-b99a580bb7a8?w=400" },
+        { title: "Microchips Orgánicos", description: "Desarrollan chips basados en proteínas para reducir la basura electrónica global.", link: "https://www.technologyreview.es/", image_url: "https://images.unsplash.com/photo-1518770660439-4636190af475?w=400" },
+        { title: "Telescopio James Webb", description: "Nuevas imágenes revelan el nacimiento de las primeras galaxias del universo.", link: "https://webbtelescope.org/", image_url: "https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?w=400" },
+        { title: "Realidad Aumentada 2.0", description: "Lentes de contacto con AR integran navegación GPS directamente en la retina.", link: "https://www.xataka.com/categoria/realidad-virtual-aumentada", image_url: "https://images.unsplash.com/photo-1478416272538-5f7e51dc5400?w=400" },
+        { title: "Internet Satelital Global", description: "Nueva red satelital reduce la latencia en zonas rurales a menos de 10ms.", link: "https://www.starlink.com/es", image_url: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=400" },
+        { title: "Baterías de Estado Sólido", description: "Fabricantes logran cargas completas en menos de 5 minutos para vehículos eléctricos.", link: "https://www.motorpasion.com/tecnologia", image_url: "https://images.unsplash.com/photo-1593941707882-a5bba14938c7?w=400" }
     ];
 
     let newsData = [];
     const newsContainer = document.getElementById('newsContainer');
     const downloadBtn = document.getElementById('downloadBtn');
     const loading = document.getElementById('loading');
+    const defaultImage = 'https://via.placeholder.com/400x200/111/ffc107?text=NOTICIAS_OS';
 
     async function getNews() {
-        // Configuramos un temporizador: si en 4 segundos la API no responde, cargamos el respaldo
+        // Temporizador de 4 segundos. Si la API falla, lanzamos el respaldo con links reales
         const timer = setTimeout(() => {
             if (newsData.length === 0) {
-                console.log("Cargando base de datos de respaldo...");
+                console.log("Activando base de datos de respaldo (API lenta o límite alcanzado)...");
                 newsData = backupNews;
                 renderNews();
-                downloadBtn.disabled = false;
-                loading.style.display = 'none';
+                activarInterfaz();
             }
         }, 4000);
 
         try {
-            const response = await fetch(`https://gnews.io/api/v4/top-headlines?category=technology&lang=es&country=any&max=10&apikey=80f68e0d93766a5a2bc9006b51079370`);
+            // Consulta directa a NewsData.io (el PUB_ que pidió el profesor)
+            const response = await fetch(`https://newsdata.io/api/1/news?apikey=${API_KEY}&category=technology,science&language=es`);
             const data = await response.json();
-            if (data.articles && data.articles.length > 0) {
+            
+            if (data.results && data.results.length > 0) {
                 clearTimeout(timer);
-                newsData = data.articles;
+                // Tomamos solo las primeras 10 noticias
+                newsData = data.results.slice(0, 10);
                 renderNews();
-                downloadBtn.disabled = false;
-                loading.style.display = 'none';
+                activarInterfaz();
+            } else {
+                throw new Error("Respuesta vacía de la API");
             }
         } catch (error) {
-            console.log("Error de API, el respaldo se activará automáticamente.");
+            console.error("Error conectando a la API. El respaldo se encargará.");
+            // Si el error salta antes de los 4 segundos, forzamos el respaldo de inmediato
+            if (newsData.length === 0) {
+                clearTimeout(timer);
+                newsData = backupNews;
+                renderNews();
+                activarInterfaz();
+            }
         }
+    }
+
+    function activarInterfaz() {
+        downloadBtn.disabled = false;
+        loading.style.display = 'none';
     }
 
     function renderNews() {
         newsContainer.innerHTML = '';
         newsData.forEach(item => {
-            const img = item.image || item.image_url || 'https://via.placeholder.com/400x200/111/ffc107?text=NOTICIAS_OS';
+            // Obtenemos la imagen o usamos la de por defecto
+            let img = item.image_url || defaultImage;
+            
             newsContainer.innerHTML += `
                 <div class="col">
                     <div class="card news-card">
-                        <img src="${img}" class="card-img-top" alt="news">
-                        <div class="card-body">
+                        <img src="${img}" class="card-img-top" alt="news" onerror="this.onerror=null; this.src='${defaultImage}';">
+                        <div class="card-body d-flex flex-column">
                             <h5 class="card-title text-warning">${item.title}</h5>
-                            <p class="card-text text-secondary small">${(item.description || "Sin descripción disponible").substring(0, 100)}...</p>
-                            <a href="${item.url || item.link}" target="_blank" class="btn btn-sm btn-outline-warning">Analizar Fuente</a>
+                            <p class="card-text text-secondary small flex-grow-1">${(item.description || "Sin descripción disponible por la fuente.").substring(0, 120)}...</p>
+                            <a href="${item.link}" target="_blank" class="btn btn-sm btn-outline-warning mt-3">Analizar Fuente</a>
                         </div>
                     </div>
                 </div>`;
@@ -107,7 +128,7 @@
             text += `[NOTICIA #${i+1}] ${n.title.toUpperCase()}\n\n`;
             text += `ANÁLISIS TÉCNICO: Este desarrollo marca un avance crítico en la industria. La implementación de estas nuevas tecnologías sugiere un cambio de paradigma, permitiendo optimizar procesos que anteriormente se consideraban ineficientes bajo los estándares tradicionales.\n\n`;
             text += `IMPLICACIONES: Los expertos proyectan que este suceso tendrá repercusiones a escala global en los próximos trimestres. Se recomienda a los departamentos de innovación monitorear la evolución de esta noticia para integrar estos conocimientos.\n\n`;
-            text += `FUENTE: ${n.url || n.link}\n`;
+            text += `FUENTE ORIGINAL: ${n.link}\n`;
             text += `----------------------------------------------------\n\n`;
         });
 
